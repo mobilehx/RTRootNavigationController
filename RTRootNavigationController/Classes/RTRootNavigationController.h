@@ -89,6 +89,13 @@ IB_DESIGNABLE
  */
 - (instancetype)initWithRootViewControllerNoWrapping:(UIViewController *)rootViewController;
 
+/**
+ *  @author HeXun, 17-01-03 15:01:58
+ *
+ *  @brief commonInit
+ */
+- (void)_commonInit;
+
 /*!
  *  @brief Remove a content view controller from the stack
  *

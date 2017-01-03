@@ -22,9 +22,34 @@
 
 #import "UIViewController+RTRootNavigationController.h"
 #import "RTRootNavigationController.h"
+#import "NSObject+YYAdd.h"
+
+static inline UIViewController *_RTContainerController(UIViewController *viewController) {
+    UIViewController *vc = viewController;
+    if ([vc isKindOfClass:[RTContainerController class]]) {
+        return nil;
+    }
+    while (vc && ![vc isKindOfClass:[RTContainerController class]]) {
+        vc = vc.parentViewController;
+    }
+    return vc;
+}
 
 @implementation UIViewController (RTRootNavigationController)
 @dynamic rt_disableInteractivePop;
+
++ (void)load
+{
+    Method originalMethod = class_getInstanceMethod(self, @selector(removeFromParentViewController));
+    Method swizzledMethod = class_getInstanceMethod(self, @selector(rt_removeFromParentViewController));
+    method_exchangeImplementations(originalMethod, swizzledMethod);
+}
+
+- (void)rt_removeFromParentViewController
+{
+    [_RTContainerController(self) removeFromParentViewController];
+    [self rt_removeFromParentViewController];
+}
 
 - (void)setRt_disableInteractivePop:(BOOL)rt_disableInteractivePop
 {
@@ -38,6 +63,7 @@
 
 - (Class)rt_navigationBarClass
 {
+    
     return nil;
 }
 

@@ -488,7 +488,8 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
 
 - (void)_commonInit
 {
-    
+    _useSystemBackBarButtonItem = NO;
+    _transferNavigationBarAttributes = YES;
 }
 
 #pragma mark - Overrides
