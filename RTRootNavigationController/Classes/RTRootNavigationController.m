@@ -464,9 +464,10 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
 - (void)setNavigationBarHidden:(BOOL)hidden animated:(BOOL)animated
 {
     [super setNavigationBarHidden:hidden animated:animated];
-    if (!self.visibleViewController.rt_hasSetInteractivePop) {
-        self.visibleViewController.rt_disableInteractivePop = hidden;
-    }
+//  默认所有界面支持边界滑动返回 无论导航栏隐藏与否
+//    if (!self.visibleViewController.rt_hasSetInteractivePop) {
+//        self.visibleViewController.rt_disableInteractivePop = hidden;
+//    }
 }
 
 @end
@@ -784,6 +785,8 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
                     animated:(BOOL)animated
 {
     BOOL isRootVC = viewController == navigationController.viewControllers.firstObject;
+    //导航栏隐藏
+    [RTSafeUnwrapViewController(viewController).navigationController setNavigationBarHidden:RTSafeUnwrapViewController(viewController).rt_prefersNavigationBarHidden animated:NO];
     if (!isRootVC) {
         viewController = RTSafeUnwrapViewController(viewController);
         if (!self.useSystemBackBarButtonItem && !viewController.navigationItem.leftBarButtonItem) {

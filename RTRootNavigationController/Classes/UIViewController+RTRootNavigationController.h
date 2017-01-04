@@ -31,6 +31,19 @@ IB_DESIGNABLE
 @property (nonatomic, assign) IBInspectable BOOL rt_disableInteractivePop;
 
 /*!
+ *   Indicate this view controller prefers its navigation bar hidden or not,
+ *   checked when view controller based navigation bar's appearance is enabled.
+ *   Default to NO, bars are more likely to show.
+ */
+@property (nonatomic, assign) IBInspectable BOOL rt_prefersNavigationBarHidden;
+
+/*!
+ *   Max allowed initial distance to left edge when you begin the interactive pop
+ *   gesture. 0 by default, which means it will ignore this limit.
+ */
+@property (nonatomic, assign) IBInspectable CGFloat rt_interactivePopMaxAllowedInitialDistanceToLeftEdge;
+
+/*!
  *  @brief @c self\.navigationControlle will get a wrapping @c UINavigationController, use this property to get the real navigation controller
  */
 @property (nonatomic, readonly, strong) RTRootNavigationController *rt_navigationController;
@@ -51,5 +64,10 @@ IB_DESIGNABLE
  *  @return a custom UIBarButtonItem
  */
 - (UIBarButtonItem *)customBackItemWithTarget:(id)target action:(SEL)action;
+
+///兼容UINavigationController+FDFullscreenPopGesture 过渡项目
+@property (nonatomic, assign) BOOL fd_interactivePopDisabled NS_DEPRECATED(2_0, 2_0, 2_0, 2_0,"Use - rt_disableInteractivePop");
+@property (nonatomic, assign) BOOL fd_prefersNavigationBarHidden NS_DEPRECATED(2_0, 2_0, 2_0, 2_0,"Use - rt_prefersNavigationBarHidden");
+@property (nonatomic, assign) CGFloat fd_interactivePopMaxAllowedInitialDistanceToLeftEdge NS_DEPRECATED(2_0, 2_0, 2_0, 2_0,"Use - rt_interactivePopMaxAllowedInitialDistanceToLeftEdge");
 
 @end

@@ -61,6 +61,31 @@ static inline UIViewController *_RTContainerController(UIViewController *viewCon
     return [objc_getAssociatedObject(self, @selector(rt_disableInteractivePop)) boolValue];
 }
 
+- (void)setRt_prefersNavigationBarHidden:(BOOL)rt_prefersNavigationBarHidden
+{
+    objc_setAssociatedObject(self, @selector(rt_prefersNavigationBarHidden), @(rt_prefersNavigationBarHidden), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (BOOL)rt_prefersNavigationBarHidden
+{
+    return [objc_getAssociatedObject(self, @selector(rt_prefersNavigationBarHidden)) boolValue];
+}
+
+- (void)setRt_interactivePopMaxAllowedInitialDistanceToLeftEdge:(CGFloat)distance
+{
+    SEL key = @selector(rt_interactivePopMaxAllowedInitialDistanceToLeftEdge);
+    objc_setAssociatedObject(self, key, @(MAX(0, distance)), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (CGFloat)rt_interactivePopMaxAllowedInitialDistanceToLeftEdge
+{
+#if CGFLOAT_IS_DOUBLE
+    return [objc_getAssociatedObject(self, _cmd) doubleValue];
+#else
+    return [objc_getAssociatedObject(self, _cmd) floatValue];
+#endif
+}
+
 - (Class)rt_navigationBarClass
 {
     
@@ -84,5 +109,38 @@ static inline UIViewController *_RTContainerController(UIViewController *viewCon
                                            target:target
                                            action:action];
 }
+
+
+- (BOOL)fd_interactivePopDisabled
+{
+    return self.rt_disableInteractivePop;
+}
+
+- (void)setFd_interactivePopDisabled:(BOOL)disabled
+{
+    self.rt_disableInteractivePop = disabled;
+}
+
+- (BOOL)fd_prefersNavigationBarHidden
+{
+    return self.rt_prefersNavigationBarHidden;
+}
+
+- (void)setFd_prefersNavigationBarHidden:(BOOL)hidden
+{
+    self.rt_prefersNavigationBarHidden = hidden;
+}
+
+
+- (CGFloat)fd_interactivePopMaxAllowedInitialDistanceToLeftEdge
+{
+    return self.rt_interactivePopMaxAllowedInitialDistanceToLeftEdge;
+}
+
+- (void)setFd_interactivePopMaxAllowedInitialDistanceToLeftEdge:(CGFloat)distance
+{
+    self.rt_interactivePopMaxAllowedInitialDistanceToLeftEdge = distance;
+}
+
 
 @end
