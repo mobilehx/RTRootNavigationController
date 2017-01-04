@@ -5,6 +5,34 @@
 [![License](https://img.shields.io/cocoapods/l/RTRootNavigationController.svg?style=flat)](http://cocoapods.org/pods/RTRootNavigationController)
 [![Platform](https://img.shields.io/cocoapods/p/RTRootNavigationController.svg?style=flat)](http://cocoapods.org/pods/RTRootNavigationController)
 
+
+##自有项目适配
+
+只是对自由项目做了简单的两个适配
+```
+RTRootNavigationController.h 暴露了
+/**
+ *  @author HeXun, 17-01-03 15:01:58
+ *
+ *  @brief commonInit
+ */
+- (void)_commonInit;
+
+UIViewController+RTRootNavigationController  增加了
++ (void)load
+{
+    Method originalMethod = class_getInstanceMethod(self, @selector(removeFromParentViewController));
+    Method swizzledMethod = class_getInstanceMethod(self, @selector(rt_removeFromParentViewController));
+    method_exchangeImplementations(originalMethod, swizzledMethod);
+}
+
+- (void)rt_removeFromParentViewController
+{
+    [_RTContainerController(self) removeFromParentViewController];
+    [self rt_removeFromParentViewController];
+}
+```
+
 ## Introduction
 More and more apps use custom navigation bar for each different view controller, instead of one common, global navigation bar.
 
