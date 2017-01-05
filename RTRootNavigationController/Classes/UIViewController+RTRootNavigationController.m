@@ -22,7 +22,6 @@
 
 #import "UIViewController+RTRootNavigationController.h"
 #import "RTRootNavigationController.h"
-#import "NSObject+YYAdd.h"
 
 static inline UIViewController *_RTContainerController(UIViewController *viewController) {
     UIViewController *vc = viewController;
@@ -49,6 +48,23 @@ static inline UIViewController *_RTContainerController(UIViewController *viewCon
 {
     [_RTContainerController(self) removeFromParentViewController];
     [self rt_removeFromParentViewController];
+}
+
+
+- (void)setRt_fullScreenPopGestureEnabled:(BOOL)rt_fullScreenPopGestureEnabled
+{
+    objc_setAssociatedObject(self, @selector(rt_fullScreenPopGestureEnabled), @(rt_fullScreenPopGestureEnabled), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [self.rt_navigationController resetInteractivePopGestureRecognizer];
+}
+
+- (BOOL)rt_fullScreenPopGestureEnabled
+{
+    id rt_f = objc_getAssociatedObject(self, @selector(rt_fullScreenPopGestureEnabled));
+    if (rt_f == nil) {
+        rt_f = @(YES);
+        self.rt_fullScreenPopGestureEnabled = YES;
+    }
+    return [rt_f boolValue];
 }
 
 - (void)setRt_disableInteractivePop:(BOOL)rt_disableInteractivePop

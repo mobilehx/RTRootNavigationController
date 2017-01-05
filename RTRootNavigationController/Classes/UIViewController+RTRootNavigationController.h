@@ -30,6 +30,12 @@ IB_DESIGNABLE
  */
 @property (nonatomic, assign) IBInspectable BOOL rt_disableInteractivePop;
 
+
+/*!
+ *  @brief set this property to @b YES to fullScreen interactive pop
+ */
+@property (nonatomic, assign) IBInspectable BOOL rt_fullScreenPopGestureEnabled;
+
 /*!
  *   Indicate this view controller prefers its navigation bar hidden or not,
  *   checked when view controller based navigation bar's appearance is enabled.

@@ -472,10 +472,127 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
 
 @end
 
+@interface UIView (_RTFullscreenPopGestureRecognizer)
+/**
+ Returns the view's view controller (may be nil).
+ */
+@property (nullable, nonatomic, readonly) UIViewController *rt_viewController;
+/**
+ Returns the view's view controller (may be nil).
+ */
+@property (nullable, nonatomic, readonly) UIScrollView *rt_scrollView;
+
+@end
+@implementation UIView (_RTFullscreenPopGestureRecognizer)
+- (UIViewController *)rt_viewController {
+    for (UIView *view = self; view; view = view.superview) {
+        UIResponder *nextResponder = [view nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)nextResponder;
+        }
+    }
+    return nil;
+}
+- (UIScrollView *)rt_scrollView
+{
+    for (UIView *view = self; view; view = view.superview) {
+        if ([view.class isSubclassOfClass:[UIScrollView class]]) {
+            return (UIScrollView *)view;
+        }
+    }
+    return nil;
+}
+
+@end
+
+@interface UIScrollView (_RTFullscreenPopGestureRecognizer)
+@end
+@implementation UIScrollView (_RTFullscreenPopGestureRecognizer)
+
+- (BOOL)_scrollViewLeft:(UIScrollView*)sc
+{
+    if (!sc) return YES;
+    if (sc.contentOffset.x <= 0) {
+        return [self _scrollViewLeft:sc.superview.rt_scrollView];
+    }
+    return NO;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+    if (gestureRecognizer.state == UIGestureRecognizerStateBegan && gestureRecognizer.view !=otherGestureRecognizer.view) {
+        if ([gestureRecognizer.view.class isSubclassOfClass:[UIScrollView class]]) {
+            UIScrollView *sc = (UIScrollView *)gestureRecognizer.view;
+            UIView *otherView = otherGestureRecognizer.view;
+            UIViewController *otherController = otherView.rt_viewController;
+            if(![otherView.class isSubclassOfClass:[UIScrollView class]]&&[otherController.class isSubclassOfClass:[RTRootNavigationController class]]){
+                UIViewController *last = RTSafeUnwrapViewController(((UINavigationController *)otherController).topViewController);
+                if (!last.rt_disableInteractivePop && last.rt_fullScreenPopGestureEnabled && [self _scrollViewLeft:sc]) {
+                    return YES;
+                }
+            }
+        }
+    }
+    return NO;
+}
+
+@end
+
+
+@interface _RTFullscreenPopGestureRecognizerDelegate : NSObject <UIGestureRecognizerDelegate>
+
+@property (nonatomic, weak) UINavigationController *navigationController;
+
+@end
+
+@implementation _RTFullscreenPopGestureRecognizerDelegate
+
+- (BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)gestureRecognizer
+{
+    // Ignore when no view controller is pushed into the navigation stack.
+    if (self.navigationController.viewControllers.count <= 1) {
+        return NO;
+    }
+    
+    // Disable when the active view controller doesn't allow interactive pop.
+    UIViewController *topViewController = RTSafeUnwrapViewController(self.navigationController.topViewController);
+    if (topViewController.rt_disableInteractivePop) {
+        return NO;
+    }
+    
+    // Ignore when the beginning location is beyond max allowed initial distance to left edge.
+    CGPoint beginningLocation = [gestureRecognizer locationInView:gestureRecognizer.view];
+    CGFloat maxAllowedInitialDistance = topViewController.rt_interactivePopMaxAllowedInitialDistanceToLeftEdge;
+    if (maxAllowedInitialDistance > 0 && beginningLocation.x > maxAllowedInitialDistance) {
+        return NO;
+    }
+    
+    // Ignore pan gesture when the navigation controller is currently in transition.
+    if ([[self.navigationController valueForKey:@"_isTransitioning"] boolValue]) {
+        return NO;
+    }
+    
+    // Prevent calling the handler when the gesture begins in an opposite direction.
+    CGPoint translation = [gestureRecognizer translationInView:gestureRecognizer.view];
+    if (translation.x <= 0) {
+        return NO;
+    }
+    
+    
+    return YES;
+}
+
+@end
 
 @interface RTRootNavigationController () <UINavigationControllerDelegate, UIGestureRecognizerDelegate>
 @property (nonatomic, weak) id<UINavigationControllerDelegate> rt_delegate;
 @property (nonatomic, copy) void(^animationBlock)(BOOL finished);
+
+/// 自定义支持全屏按钮
+@property (nonatomic, strong) UIPanGestureRecognizer *popPanGesture;
+
+@property (nonatomic, strong) _RTFullscreenPopGestureRecognizerDelegate *popGestureDelegate;
+
 @end
 
 @implementation RTRootNavigationController
@@ -491,6 +608,10 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
 {
     _useSystemBackBarButtonItem = NO;
     _transferNavigationBarAttributes = YES;
+    
+    self.interactivePopGestureRecognizer.delaysTouchesBegan = YES;
+    self.interactivePopGestureRecognizer.delegate = self;
+    self.interactivePopGestureRecognizer.enabled = YES;
 }
 
 #pragma mark - Overrides
@@ -808,14 +929,17 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
 {
     BOOL isRootVC = viewController == navigationController.viewControllers.firstObject;
     viewController = RTSafeUnwrapViewController(viewController);
-    if (viewController.rt_disableInteractivePop) {
-        self.interactivePopGestureRecognizer.delegate = nil;
-        self.interactivePopGestureRecognizer.enabled = NO;
-    } else {
-        self.interactivePopGestureRecognizer.delaysTouchesBegan = YES;
-        self.interactivePopGestureRecognizer.delegate = self;
-        self.interactivePopGestureRecognizer.enabled = !isRootVC;
-    }
+    [self setInteractivePopGestureRecognizer:viewController isTootVC:isRootVC];
+
+//    old
+//    if (viewController.rt_disableInteractivePop) {
+//        self.interactivePopGestureRecognizer.delegate = nil;
+//        self.interactivePopGestureRecognizer.enabled = NO;
+//    } else {
+//        self.interactivePopGestureRecognizer.delaysTouchesBegan = YES;
+//        self.interactivePopGestureRecognizer.delegate = self;
+//        self.interactivePopGestureRecognizer.enabled = !isRootVC;
+//    }
     
     [RTRootNavigationController attemptRotationToDeviceOrientation];
     
@@ -830,6 +954,42 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
                                       animated:animated];
     }
 }
+
+
+- (void)resetInteractivePopGestureRecognizer
+{
+    UIViewController *viewController = self.topViewController;
+    BOOL isRootVC = viewController == self.viewControllers.firstObject;
+    viewController = RTSafeUnwrapViewController(viewController);
+    [self setInteractivePopGestureRecognizer:viewController isTootVC:isRootVC];
+}
+
+- (void)setInteractivePopGestureRecognizer:(UIViewController *)viewController isTootVC:(BOOL)isRootVC
+{
+    if (viewController.rt_disableInteractivePop) {
+        [self.interactivePopGestureRecognizer.view removeGestureRecognizer:self.popPanGesture];
+        self.interactivePopGestureRecognizer.delegate = nil;
+        self.interactivePopGestureRecognizer.enabled = NO;
+    }else{
+        if (viewController.rt_fullScreenPopGestureEnabled) {
+            if (isRootVC) {
+                [self.interactivePopGestureRecognizer.view removeGestureRecognizer:self.popPanGesture];
+            }else{
+                if (![self.interactivePopGestureRecognizer.view.gestureRecognizers containsObject:self.popPanGesture]) {
+                    [self.interactivePopGestureRecognizer.view addGestureRecognizer:self.popPanGesture];
+                }
+            }
+            self.interactivePopGestureRecognizer.delegate = nil;
+            self.interactivePopGestureRecognizer.enabled = NO;
+        }else{
+            [self.interactivePopGestureRecognizer.view removeGestureRecognizer:self.popPanGesture];
+            self.interactivePopGestureRecognizer.delaysTouchesBegan = YES;
+            self.interactivePopGestureRecognizer.delegate = self;
+            self.interactivePopGestureRecognizer.enabled = !isRootVC;
+        }
+    }
+}
+
 
 - (UIInterfaceOrientationMask)navigationControllerSupportedInterfaceOrientations:(UINavigationController *)navigationController
 {
@@ -873,6 +1033,30 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
     return nil;
 }
 
+#pragma mark - pan
+- (UIPanGestureRecognizer *)popPanGesture
+{
+    if (!_popPanGesture) {
+        NSArray *internalTargets = [self.interactivePopGestureRecognizer valueForKey:@"targets"];
+        id internalTarget = [internalTargets.firstObject valueForKey:@"target"];
+        SEL internalAction = NSSelectorFromString(@"handleNavigationTransition:");
+        _popPanGesture = [[UIPanGestureRecognizer alloc]init];
+        _popPanGesture.delegate = self.popGestureDelegate;
+        _popPanGesture.delaysTouchesBegan = YES;
+        _popPanGesture.maximumNumberOfTouches = 1;
+        [_popPanGesture addTarget:internalTarget action:internalAction];
+    }
+    return _popPanGesture;
+}
+
+- (_RTFullscreenPopGestureRecognizerDelegate *)popGestureDelegate
+{
+    if (!_popGestureDelegate) {
+        _popGestureDelegate = [[_RTFullscreenPopGestureRecognizerDelegate alloc] init];
+        _popGestureDelegate.navigationController = self;
+    }
+    return _popGestureDelegate;
+}
 
 
 #pragma mark - UIGestureRecognizerDelegate
@@ -884,7 +1068,7 @@ __attribute((overloadable)) static inline UIViewController *RTSafeWrapViewContro
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
 shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return (gestureRecognizer == self.interactivePopGestureRecognizer);
+    return ([gestureRecognizer isKindOfClass:[UIScreenEdgePanGestureRecognizer class]]);
 }
 
 @end
